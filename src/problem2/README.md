@@ -1,4 +1,4 @@
-# Fancy Form — currency swap
+# Fancy Form: currency swap
 
 Vanilla JS + [Vite](https://vite.dev/), styled with the [Tailwind CSS](https://tailwindcss.com/) Play CDN.
 

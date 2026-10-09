@@ -1,4 +1,4 @@
-# Scoreboard Module — API Service Specification
+# Scoreboard Module: API Service Specification
 
 Backend module that records user score increases and pushes a live **Top 10** scoreboard to every connected website client.
 
@@ -12,7 +12,7 @@ Audience: the backend team implementing it. Target stack follows the rest of thi
 |---|-------------|--------------------------|
 | 1 | Scoreboard shows top 10 scores | `GET /v1/scoreboard` reads a ranked set (Redis sorted set) |
 | 2 | Live updates | `GET /v1/scoreboard/stream` (Server-Sent Events) pushes the new top 10 whenever it changes |
-| 3–4 | Completing an action increases the score via an API call | `POST /v1/actions` → `POST /v1/actions/:actionId/complete` |
+| 3-4 | Completing an action increases the score via an API call | `POST /v1/actions` → `POST /v1/actions/:actionId/complete` |
 | 5 | Stop unauthorised score increases | Authenticated user + server-issued single-use action ticket + server-decided score delta + rate limits |
 
 **Out of scope:** what the action is, user registration/login (we consume an existing auth token), the frontend.
@@ -29,7 +29,7 @@ A bare `POST /score { userId, points }` is trivially abusable (replay it, change
 2. **Server-issued action ticket.** Before the user performs the action, the client asks the server to start one. The server stores `{actionId, userId, status: PENDING, issuedAt, expiresAt}` and returns `actionId`.
 3. **Single use.** Completing the action atomically flips `PENDING → COMPLETED`. A second call with the same `actionId` changes nothing (idempotent, returns the original result).
 4. **Bound to the user.** An `actionId` started by user A cannot be completed by user B.
-5. **Time window.** Tickets expire (default 10 min). Completing earlier than the action's minimum plausible duration (`minDurationMs`, configurable per action type) is rejected — stops scripts that call start+complete back to back.
+5. **Time window.** Tickets expire (default 10 min). Completing earlier than the action's minimum plausible duration (`minDurationMs`, configurable per action type) is rejected. This stops scripts that call start+complete back to back.
 6. **Points are server-side config.** `scoreDelta` is looked up from the action type on the server.
 7. **Rate limits** per user and per IP on both endpoints.
 
@@ -39,7 +39,7 @@ A bare `POST /score { userId, points }` is trivially abusable (replay it, change
 
 All endpoints are under `/v1`. All write endpoints require `Authorization: Bearer <JWT>`. Errors use `{ "error": { "code": string, "message": string } }`.
 
-### 3.1 `POST /v1/actions` — start an action
+### 3.1 `POST /v1/actions`: start an action
 
 Auth: required.
 
@@ -55,7 +55,7 @@ Response `201`
 
 Errors: `401` bad/missing token · `400` unknown `actionType` · `429` rate limited.
 
-### 3.2 `POST /v1/actions/:actionId/complete` — complete the action, add score
+### 3.2 `POST /v1/actions/:actionId/complete`: complete the action, add score
 
 Auth: required. No body.
 
@@ -78,7 +78,7 @@ Errors:
 
 Repeating a successful call returns `200` with the same body (idempotent).
 
-### 3.3 `GET /v1/scoreboard` — current top 10
+### 3.3 `GET /v1/scoreboard`: current top 10
 
 Auth: none (public). Used for first paint and as fallback.
 
@@ -93,7 +93,7 @@ Response `200`
 }
 ```
 
-### 3.4 `GET /v1/scoreboard/stream` — live updates (SSE)
+### 3.4 `GET /v1/scoreboard/stream`: live updates (SSE)
 
 Auth: none. `Content-Type: text/event-stream`.
 
@@ -107,7 +107,7 @@ id: 4183
 data: {"version":4183,"updatedAt":"...","entries":[...]}
 ```
 
-Clients send the full list, not diffs — 10 rows is tiny and removes any client-side merge bugs. On reconnect the browser's `EventSource` reconnects automatically; the initial event resyncs it.
+Clients send the full list, not diffs; 10 rows is tiny and removes any client-side merge bugs. On reconnect the browser's `EventSource` reconnects automatically; the initial event resyncs it.
 
 Why SSE, not WebSocket: traffic is server → client only, SSE works over plain HTTP, auto-reconnects, and needs no extra library.
 
@@ -226,7 +226,7 @@ flowchart TD
 ## 6. Implementation notes
 
 - **Atomicity.** The ticket state change and score increment must be in **one DB transaction** using a conditional `UPDATE ... WHERE status='PENDING'`. This is what makes double-submits and races safe without locks.
-- **Redis after commit.** Write to Redis only after the DB commit. If the Redis write fails, log it and let the reconciler (§7) fix it; do not fail the request — the score is already saved.
+- **Redis after commit.** Write to Redis only after the DB commit. If the Redis write fails, log it and let the reconciler (§7) fix it; do not fail the request, since the score is already saved.
 - **Change detection.** Each instance keeps the last published top 10 in memory, but the decision to publish is made by the instance that handled the write (compare `ZREVRANGE 0 9` before/after, or simply compare the new score against the 10th score). Publishing a few redundant events is harmless; clients replace the whole list.
 - **Fan-out.** Every API instance subscribes to `scoreboard:updates` on startup and writes the payload to all its open SSE responses. No sticky sessions needed.
 - **Throttle broadcasts.** Coalesce updates to at most one push per 250 ms per instance so a burst of scores doesn't flood clients.
@@ -252,7 +252,7 @@ flowchart TD
 
 - **Reconciler job** (every few minutes and on boot): rebuild `scoreboard:z` from `user_scores` (`ZADD` in batches). Keeps Redis correct after failed writes or a Redis restart.
 - **Ticket cleanup:** delete or archive `PENDING` actions past `expires_at` daily.
-- **Scaling:** API instances are stateless apart from open SSE connections; scale horizontally. SSE connections are long-lived — set load-balancer idle timeout above the 25 s heartbeat.
+- **Scaling:** API instances are stateless apart from open SSE connections; scale horizontally. SSE connections are long-lived, so set load-balancer idle timeout above the 25 s heartbeat.
 
 ---
 
@@ -263,7 +263,7 @@ flowchart TD
 3. **Anomaly detection.** Flag users whose score rate is far above normal; hold their scoreboard entry for review instead of showing it live.
 4. **Daily / per-user caps** on score gain as a simple ceiling on damage.
 5. **Queue for writes** (e.g. Redis Streams / SQS) if write volume grows beyond what one DB transaction per action can handle.
-6. **Leaderboard periods** (daily/weekly/all-time) — only one extra sorted set per period if wanted later.
+6. **Leaderboard periods** (daily/weekly/all-time): only one extra sorted set per period if wanted later.
 7. **Ties:** define ordering rule (suggest: earlier `updated_at` wins). Encode by storing `score * 1e10 + (MAX_TS - updated_at_seconds)` in the sorted set, or sort ties in app code.
 8. **Privacy:** expose `displayName` only, never emails or internal IDs if they are sensitive.
-9. **Fallback:** clients that can't hold SSE (some corporate proxies) poll `GET /v1/scoreboard` every 5–10 s; `version` lets them skip re-rendering when nothing changed.
+9. **Fallback:** clients that can't hold SSE (some corporate proxies) poll `GET /v1/scoreboard` every 5-10 s; `version` lets them skip re-rendering when nothing changed.

@@ -168,7 +168,7 @@ async function onSubmit(e) {
   submit.disabled = true;
   submit.classList.add("animate-pulse");
   submit.textContent = "Swapping…";
-  // shortcut: no backend exists, so the swap is simulated with a delay; replace with the real API call.
+  // No backend yet, so the swap is simulated with a delay.
   await new Promise((r) => setTimeout(r, 1400));
   state.busy = false;
   submit.classList.remove("animate-pulse");

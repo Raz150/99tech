@@ -24,10 +24,10 @@ A resource is `{ id, name, description, created_at, updated_at }`.
 | Method   | Path             | Body                       | Success |
 |----------|------------------|----------------------------|---------|
 | `POST`   | `/resources`     | `{ name, description? }`   | `201` + resource |
-| `GET`    | `/resources`     | —                          | `200` + array |
-| `GET`    | `/resources/:id` | —                          | `200` + resource |
+| `GET`    | `/resources`     |                            | `200` + array |
+| `GET`    | `/resources/:id` |                            | `200` + resource |
 | `PATCH`  | `/resources/:id` | `{ name?, description? }`  | `200` + resource |
-| `DELETE` | `/resources/:id` | —                          | `204` |
+| `DELETE` | `/resources/:id` |                            | `204` |
 
 List filters: `?name=` (case-insensitive substring), `?limit=` (default 20, max 100), `?offset=`.
 
