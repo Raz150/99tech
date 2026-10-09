@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wallet Page</title>
+    <!-- shortcut: Tailwind Play CDN builds CSS in the browser; fine for this demo, use the Vite plugin for production -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --animate-flash-up: flash-up 0.8s ease;
+        --animate-flash-down: flash-down 0.8s ease;
+        @keyframes flash-up { from { color: var(--color-emerald-500); background: --alpha(var(--color-emerald-500) / 15%); } }
+        @keyframes flash-down { from { color: var(--color-red-500); background: --alpha(var(--color-red-500) / 15%); } }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-100 px-4 py-12 font-sans text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
